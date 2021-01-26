@@ -1,0 +1,11 @@
+GameName holdem_limit
+MaxStreet 3
+NumRanks 13
+NumSuits 4
+NumHoleCards 2
+NumFlopCards 3
+Ante 0
+SmallBlind 50
+BigBlind 100
+FirstToAct 0,1,1,1
+NumPlayers 2
