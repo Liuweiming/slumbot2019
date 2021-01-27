@@ -145,9 +145,7 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < num_unique; ++i) {
     for (int f = 0; f < num_features; ++f) {
       objects[i * num_features + f] = (*unique_objects)[i][f];
-      std::cout << objects[i * num_features + f] << " ";
     }
-    std::cout << std::endl;
     delete[](*unique_objects)[i];
   }
   delete unique_objects;

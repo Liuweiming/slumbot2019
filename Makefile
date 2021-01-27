@@ -17,8 +17,8 @@ HEADS =	src/fast_hash.h src/rand.h src/constants.h src/files.h src/cards.h src/i
 
 # -Wl,--no-as-needed fixes my problem of undefined reference to
 # pthread_create (and pthread_join).  Comments I found on the web indicate
-# that these flags are a workaround to a gcc bug.
-LIBRARIES = -pthread
+# that these flags are a workaround to a $(CC) bug.
+LIBRARIES = -pthread -Wl,--no-as-needed
 
 # For profiling:
 # LDFLAGS = -pg
@@ -31,9 +31,11 @@ LDFLAGS =
 # For profiling:
 # CFLAGS = -std=c++17 -Wall -O3 -march=native -ffast-math -g -pg
 CFLAGS = -std=c++17 -Wall -O3 -march=native -ffast-math -flto
+CC = gcc-7
+CXX = g++-7
 
 obj/%.o:	src/%.cpp $(HEADS)
-		gcc $(CFLAGS) -c -o $@ $<
+		$(CC) $(CFLAGS) -c -o $@ $<
 
 OBJS =	obj/fast_hash.o obj/rand.o obj/files.o obj/cards.o obj/io.o obj/split.o obj/params.o \
 	obj/game_params.o obj/game.o obj/card_abstraction_params.o obj/card_abstraction.o \
@@ -61,159 +63,159 @@ all:	bin/show_num_boards bin/show_boards bin/build_hand_value_tree bin/build_nul
 	bin/quantize_sumprobs
 
 bin/show_num_boards:	obj/show_num_boards.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/show_num_boards obj/show_num_boards.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/show_num_boards obj/show_num_boards.o $(OBJS) $(LIBRARIES)
 
 bin/show_boards:	obj/show_boards.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/show_boards obj/show_boards.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/show_boards obj/show_boards.o $(OBJS) $(LIBRARIES)
 
 bin/build_hand_value_tree:	obj/build_hand_value_tree.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/build_hand_value_tree obj/build_hand_value_tree.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/build_hand_value_tree obj/build_hand_value_tree.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/build_null_buckets:	obj/build_null_buckets.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/build_null_buckets obj/build_null_buckets.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/build_null_buckets obj/build_null_buckets.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/build_rollout_features:	obj/build_rollout_features.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/build_rollout_features obj/build_rollout_features.o \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/build_rollout_features obj/build_rollout_features.o \
 	$(OBJS) $(LIBRARIES)
 
 bin/combine_features:	obj/combine_features.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/combine_features obj/combine_features.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/combine_features obj/combine_features.o $(OBJS) $(LIBRARIES)
 
 bin/build_unique_buckets:	obj/build_unique_buckets.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/build_unique_buckets obj/build_unique_buckets.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/build_unique_buckets obj/build_unique_buckets.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/build_kmeans_buckets:	obj/build_kmeans_buckets.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/build_kmeans_buckets obj/build_kmeans_buckets.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/build_kmeans_buckets obj/build_kmeans_buckets.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/build_kmcuda_buckets:	obj/build_kmcuda_buckets.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/build_kmcuda_buckets obj/build_kmcuda_buckets.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/build_kmcuda_buckets obj/build_kmcuda_buckets.o $(OBJS) \
 	$(LIBRARIES) -L. -l:libKMCUDA.so
 
 bin/crossproduct:	obj/crossproduct.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/crossproduct obj/crossproduct.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/crossproduct obj/crossproduct.o $(OBJS) $(LIBRARIES)
 
 bin/prify:	obj/prify.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/prify obj/prify.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/prify obj/prify.o $(OBJS) $(LIBRARIES)
 
 bin/show_num_buckets:	obj/show_num_buckets.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/show_num_buckets obj/show_num_buckets.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/show_num_buckets obj/show_num_buckets.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/build_betting_tree:	obj/build_betting_tree.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/build_betting_tree obj/build_betting_tree.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/build_betting_tree obj/build_betting_tree.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/show_betting_tree:	obj/show_betting_tree.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/show_betting_tree obj/show_betting_tree.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/show_betting_tree obj/show_betting_tree.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/run_cfrp:	obj/run_cfrp.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/run_cfrp obj/run_cfrp.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/run_cfrp obj/run_cfrp.o $(OBJS) $(LIBRARIES)
 
 bin/run_tcfr:	obj/run_tcfr.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/run_tcfr obj/run_tcfr.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/run_tcfr obj/run_tcfr.o $(OBJS) $(LIBRARIES)
 
 bin/run_ecfr:	obj/run_ecfr.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/run_ecfr obj/run_ecfr.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/run_ecfr obj/run_ecfr.o $(OBJS) $(LIBRARIES)
 
 bin/run_rgbr:	obj/run_rgbr.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/run_rgbr obj/run_rgbr.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/run_rgbr obj/run_rgbr.o $(OBJS) $(LIBRARIES)
 
 bin/solve_all_subgames:	obj/solve_all_subgames.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/solve_all_subgames obj/solve_all_subgames.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/solve_all_subgames obj/solve_all_subgames.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/solve_all_backup_subgames:	obj/solve_all_backup_subgames.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/solve_all_backup_subgames obj/solve_all_backup_subgames.o \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/solve_all_backup_subgames obj/solve_all_backup_subgames.o \
 	$(OBJS) $(LIBRARIES)
 
 bin/solve_one_subgame_safe:	obj/solve_one_subgame_safe.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/solve_one_subgame_safe obj/solve_one_subgame_safe.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/solve_one_subgame_safe obj/solve_one_subgame_safe.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/solve_one_subgame_unsafe:	obj/solve_one_subgame_unsafe.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/solve_one_subgame_unsafe obj/solve_one_subgame_unsafe.o \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/solve_one_subgame_unsafe obj/solve_one_subgame_unsafe.o \
 	$(OBJS) $(LIBRARIES)
 
 bin/progressively_solve_subgames:	obj/progressively_solve_subgames.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/progressively_solve_subgames \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/progressively_solve_subgames \
 	obj/progressively_solve_subgames.o $(OBJS) $(LIBRARIES)
 
 bin/assemble_subgames:	obj/assemble_subgames.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/assemble_subgames obj/assemble_subgames.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/assemble_subgames obj/assemble_subgames.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/assemble_subgames2:	obj/assemble_subgames2.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/assemble_subgames2 obj/assemble_subgames2.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/assemble_subgames2 obj/assemble_subgames2.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/dump_file:	obj/dump_file.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/dump_file obj/dump_file.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/dump_file obj/dump_file.o $(OBJS) $(LIBRARIES)
 
 bin/show_preflop_strategy:	obj/show_preflop_strategy.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/show_preflop_strategy obj/show_preflop_strategy.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/show_preflop_strategy obj/show_preflop_strategy.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/show_preflop_reach_probs:	obj/show_preflop_reach_probs.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/show_preflop_reach_probs obj/show_preflop_reach_probs.o \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/show_preflop_reach_probs obj/show_preflop_reach_probs.o \
 	$(OBJS) $(LIBRARIES)
 
 bin/show_probs_at_node:	obj/show_probs_at_node.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/show_probs_at_node obj/show_probs_at_node.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/show_probs_at_node obj/show_probs_at_node.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/play:	obj/play.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/play obj/play.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/play obj/play.o $(OBJS) $(LIBRARIES)
 
 bin/head_to_head:	obj/head_to_head.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/head_to_head obj/head_to_head.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/head_to_head obj/head_to_head.o $(OBJS) $(LIBRARIES)
 
 bin/mc_node:	obj/mc_node.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/mc_node obj/mc_node.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/mc_node obj/mc_node.o $(OBJS) $(LIBRARIES)
 
 bin/eval_node:	obj/eval_node.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/eval_node obj/eval_node.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/eval_node obj/eval_node.o $(OBJS) $(LIBRARIES)
 
 bin/sampled_br:	obj/sampled_br.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/sampled_br obj/sampled_br.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/sampled_br obj/sampled_br.o $(OBJS) $(LIBRARIES)
 
 bin/run_approx_rgbr:	obj/run_approx_rgbr.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/run_approx_rgbr obj/run_approx_rgbr.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/run_approx_rgbr obj/run_approx_rgbr.o $(OBJS) $(LIBRARIES)
 
 bin/test_backup_tree:	obj/test_backup_tree.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/test_backup_tree obj/test_backup_tree.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/test_backup_tree obj/test_backup_tree.o $(OBJS) $(LIBRARIES)
 
 bin/estimate_ram:	obj/estimate_ram.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/estimate_ram obj/estimate_ram.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/estimate_ram obj/estimate_ram.o $(OBJS) $(LIBRARIES)
 
 bin/find_gaps:	obj/find_gaps.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/find_gaps obj/find_gaps.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/find_gaps obj/find_gaps.o $(OBJS) $(LIBRARIES)
 
 bin/keep_backups:	obj/keep_backups.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/keep_backups obj/keep_backups.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/keep_backups obj/keep_backups.o $(OBJS) $(LIBRARIES)
 
 bin/quantize_sumprobs:	obj/quantize_sumprobs.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/quantize_sumprobs obj/quantize_sumprobs.o $(OBJS) \
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/quantize_sumprobs obj/quantize_sumprobs.o $(OBJS) \
 	$(LIBRARIES)
 
 bin/test_disk_probs:	obj/test_disk_probs.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/test_disk_probs obj/test_disk_probs.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/test_disk_probs obj/test_disk_probs.o $(OBJS) $(LIBRARIES)
 
 bin/test_agent:	obj/test_agent.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/test_agent obj/test_agent.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/test_agent obj/test_agent.o $(OBJS) $(LIBRARIES)
 
 bin/test_agent2:	obj/test_agent2.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/test_agent2 obj/test_agent2.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/test_agent2 obj/test_agent2.o $(OBJS) $(LIBRARIES)
 
 bin/run_acpc_server:	obj/run_acpc_server.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/run_acpc_server obj/run_acpc_server.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/run_acpc_server obj/run_acpc_server.o $(OBJS) $(LIBRARIES)
 
 bin/run_bot:	obj/run_bot.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/run_bot obj/run_bot.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/run_bot obj/run_bot.o $(OBJS) $(LIBRARIES)
 
 bin/x:	obj/x.o $(OBJS) $(HEADS)
-	g++ $(LDFLAGS) $(CFLAGS) -o bin/x obj/x.o $(OBJS) $(LIBRARIES)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/x obj/x.o $(OBJS) $(LIBRARIES)
