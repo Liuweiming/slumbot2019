@@ -18,7 +18,7 @@ HEADS =	src/fast_hash.h src/rand.h src/constants.h src/files.h src/cards.h src/i
 # -Wl,--no-as-needed fixes my problem of undefined reference to
 # pthread_create (and pthread_join).  Comments I found on the web indicate
 # that these flags are a workaround to a gcc bug.
-LIBRARIES = -pthread -Wl,--no-as-needed
+LIBRARIES = -pthread
 
 # For profiling:
 # LDFLAGS = -pg
@@ -51,7 +51,7 @@ OBJS =	obj/fast_hash.o obj/rand.o obj/files.o obj/cards.o obj/io.o obj/split.o o
 
 all:	bin/show_num_boards bin/show_boards bin/build_hand_value_tree bin/build_null_buckets \
 	bin/build_rollout_features bin/combine_features bin/build_unique_buckets \
-	bin/build_kmeans_buckets bin/crossproduct bin/prify bin/show_num_buckets \
+	bin/build_kmeans_buckets bin/build_kmcuda_buckets bin/crossproduct bin/prify bin/show_num_buckets \
 	bin/build_betting_tree bin/show_betting_tree bin/run_cfrp bin/run_tcfr bin/run_ecfr \
 	bin/run_rgbr bin/solve_all_subgames bin/solve_all_backup_subgames \
 	bin/solve_one_subgame_safe bin/solve_one_subgame_unsafe bin/progressively_solve_subgames \
@@ -88,6 +88,10 @@ bin/build_unique_buckets:	obj/build_unique_buckets.o $(OBJS) $(HEADS)
 bin/build_kmeans_buckets:	obj/build_kmeans_buckets.o $(OBJS) $(HEADS)
 	g++ $(LDFLAGS) $(CFLAGS) -o bin/build_kmeans_buckets obj/build_kmeans_buckets.o $(OBJS) \
 	$(LIBRARIES)
+
+bin/build_kmcuda_buckets:	obj/build_kmcuda_buckets.o $(OBJS) $(HEADS)
+	g++ $(LDFLAGS) $(CFLAGS) -o bin/build_kmcuda_buckets obj/build_kmcuda_buckets.o $(OBJS) \
+	$(LIBRARIES) -L. -l:libKMCUDA.so
 
 bin/crossproduct:	obj/crossproduct.o $(OBJS) $(HEADS)
 	g++ $(LDFLAGS) $(CFLAGS) -o bin/crossproduct obj/crossproduct.o $(OBJS) $(LIBRARIES)

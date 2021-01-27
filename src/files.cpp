@@ -16,17 +16,9 @@ string Files::static_base_ = "";
 void Files::Init(void) {
   char hostname_buf[500];
   gethostname(hostname_buf, sizeof(hostname_buf));
-
-  if (! strcmp(hostname_buf, "koele")) {
-    old_cfr_base_ = "/data/poker2019/cfr";
-    new_cfr_base_ = "/data/poker2019/cfr";
-    static_base_ = "/data/poker2019/static";
-  } else {
-    // Default to current directory
-    old_cfr_base_ = ".";
-    new_cfr_base_ = ".";
-    static_base_ = ".";
-  }
+  old_cfr_base_ = "./cfr";
+  new_cfr_base_ = "./cfr";
+  static_base_ = "./static";
 }
 
 const char *Files::OldCFRBase(void) {

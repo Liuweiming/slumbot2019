@@ -1,3 +1,7 @@
 /.vscode
 ./bin/*
 ./obj/*
+*.so
+/runs/cfr
+/runs/static
+/runs/*.txt
