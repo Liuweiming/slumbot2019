@@ -156,7 +156,12 @@ int main(int argc, char *argv[]) {
   uint32_t *assignments = new uint32_t[num_unique];
   float average_distance;
 
-  kmeans_cuda(kmcudaInitMethodPlusPlus, NULL, 0.001, 0, kmcudaDistanceMetricL2,
+  float yinyang_t = 0.1;
+  if (st > 1){
+    // disable yinyang to save memory for stree 2 and stree 3.
+    yinyang_t = 0.0;
+  }
+  kmeans_cuda(kmcudaInitMethodPlusPlus, NULL, 0.0, yinyang_t, kmcudaDistanceMetricL2,
               num_unique, num_features, num_clusters, 2021127, 0, -1, 0, 1,
               objects, centroids, assignments, &average_distance);
   fprintf(stderr, "Average distance: %f\n", average_distance);
