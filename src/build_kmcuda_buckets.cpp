@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
   float *objects = new float[num_unique * num_features];
   for (int i = 0; i < num_unique; ++i) {
     for (int f = 0; f < num_features; ++f) {
-      objects[i * num_features + f] = (*unique_objects)[i][f] / (50 * 49 / 2.0);
+      objects[i * num_features + f] = (*unique_objects)[i][f];
       if (i < 10) std::cout << objects[i * num_features + f] << " ";
     }
     if (i < 10) std::cout << std::endl; 
@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
   uint32_t *assignments = new uint32_t[num_unique];
   float average_distance;
 
-  kmeans_cuda(kmcudaInitMethodPlusPlus, NULL, 0.0, 0.1, kmcudaDistanceMetricL2,
+  kmeans_cuda(kmcudaInitMethodPlusPlus, NULL, 0.001, 0.1, kmcudaDistanceMetricL2,
               num_unique, num_features, num_clusters, 2021127, 0, -1, 0, 1,
               objects, centroids, assignments, &average_distance);
   fprintf(stderr, "Average distance: %f\n", average_distance);
