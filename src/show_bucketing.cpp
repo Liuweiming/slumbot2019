@@ -107,8 +107,11 @@ int main(int argc, char *argv[]) {
           unsigned int h = hcp;
           std::string cards_str = cards_to_string(hole_cards, 2);
           bucket_index[buckets.Bucket(st, h)].insert(cards_str);
-          bucket_map[Rank(hi)][Rank(lo)] = buckets.Bucket(st, h);
-          bucket_map[Rank(lo)][Rank(hi)] = buckets.Bucket(st, h);
+          if (Suit(hi) == Suit(lo)) {
+            bucket_map[Rank(lo)][Rank(hi)] = buckets.Bucket(st, h);
+          } else {
+            bucket_map[Rank(hi)][Rank(lo)] = buckets.Bucket(st, h);
+          }
           ++hcp;
         }
       }
@@ -122,15 +125,16 @@ int main(int argc, char *argv[]) {
     }
     if (!st) {
       std::string colormap[13] = {
-          "\033[31m", "\033[32m", "\033[33m", "\033[34m", "\033[35m", "\033[36m", "\033[37m",
-          "\033[91m", "\033[92m", "\033[93m", "\033[94m", "\033[95m", "\033[96m",
+          "\033[31m", "\033[32m", "\033[33m", "\033[34m", "\033[35m",
+          "\033[36m", "\033[37m", "\033[91m", "\033[92m", "\033[93m",
+          "\033[94m", "\033[95m", "\033[96m",
       };
       fprintf(stdout, "\n");
       for (int i = 0; i != 13; ++i) {
         for (int j = 0; j != 13; ++j) {
           fprintf(stdout, colormap[bucket_map[i][j]].c_str());
           fprintf(stdout, "%4d", bucket_map[i][j]);
-      fprintf(stdout, "\033[0m");
+          fprintf(stdout, "\033[0m");
         }
         fprintf(stdout, "\n");
       }
