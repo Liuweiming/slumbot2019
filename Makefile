@@ -13,7 +13,7 @@ HEADS =	src/fast_hash.h src/rand.h src/constants.h src/files.h src/cards.h src/i
 	src/tcfr.h src/rollout.h src/sparse_and_dense.h src/kmeans.h src/reach_probs.h \
 	src/backup_tree.h src/ecfr.h src/disk_probs.h src/agent.h src/logging.h src/socket_io.h \
 	src/nb_socket_io.h src/server.h src/match_state.h src/acpc_protocol.h src/bot.h \
-	src/acpc_server.h
+	src/acpc_server.h src/hand_index.h src/hand_index-impl.h
 
 # -Wl,--no-as-needed fixes my problem of undefined reference to
 # pthread_create (and pthread_join).  Comments I found on the web indicate
@@ -29,12 +29,15 @@ LDFLAGS =
 # -ffast-math may need to be turned off for tests like std::isnan() to work
 # -ffast-math makes small changes to results of floating point calculations!
 # For profiling:
-# CFLAGS = -std=c++17 -Wall -march=native -ffast-math -g -pg
-CFLAGS = -std=c++17 -Wall -O3 -march=native -ffast-math -flto
+CFLAGS = -std=c++17 -Wall -march=native -ffast-math -g -pg
+# CFLAGS = -std=c++17 -Wall -O3 -march=native -ffast-math -flto
 CC = gcc-7
 CXX = g++-7
 
 obj/%.o:	src/%.cpp $(HEADS)
+		$(CC) $(CFLAGS) -c -o $@ $<
+
+obj/%.o:	src/%.c $(HEADS)
 		$(CC) $(CFLAGS) -c -o $@ $<
 
 OBJS =	obj/fast_hash.o obj/rand.o obj/files.o obj/cards.o obj/io.o obj/split.o obj/params.o \
@@ -51,7 +54,7 @@ OBJS =	obj/fast_hash.o obj/rand.o obj/files.o obj/cards.o obj/io.o obj/split.o o
 	obj/ecfr.o obj/disk_probs.o obj/agent.o obj/logging.o obj/socket_io.o obj/nb_socket_io.o \
 	obj/server.o obj/match_state.o obj/acpc_protocol.o obj/bot.o obj/acpc_server.o
 
-all:	bin/show_num_boards bin/show_bucketing bin/show_boards bin/build_hand_value_tree bin/build_null_buckets \
+all:	bin/show_num_boards bin/show_bucketing  bin/reindex_bucket bin/show_boards bin/build_hand_value_tree bin/build_null_buckets \
 	bin/build_rollout_features bin/build_ochs_features bin/combine_features bin/build_unique_buckets \
 	bin/build_kmeans_buckets bin/build_kmcuda_buckets bin/crossproduct bin/prify bin/show_num_buckets \
 	bin/build_betting_tree bin/show_betting_tree bin/run_cfrp bin/run_tcfr bin/run_ecfr \
@@ -67,6 +70,9 @@ bin/show_num_boards:	obj/show_num_boards.o $(OBJS) $(HEADS)
 
 bin/show_bucketing:	obj/show_bucketing.o $(OBJS) $(HEADS)
 	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/show_bucketing obj/show_bucketing.o $(OBJS) $(LIBRARIES)
+
+bin/reindex_bucket:	obj/reindex_bucket.o obj/hand_index.o $(OBJS) $(HEADS)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/reindex_bucket obj/reindex_bucket.o obj/hand_index.o $(OBJS) $(LIBRARIES)
 
 bin/show_boards:	obj/show_boards.o $(OBJS) $(HEADS)
 	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/show_boards obj/show_boards.o $(OBJS) $(LIBRARIES)
