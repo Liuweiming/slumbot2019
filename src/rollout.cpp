@@ -11,9 +11,11 @@
 #include <stdlib.h>
 
 #include <algorithm>
+#include <thread>
 #include <vector>
 
 #include "board_tree.h"
+#include "buckets.h"
 #include "canonical_cards.h"
 #include "cards.h"
 #include "constants.h"
@@ -37,7 +39,7 @@ static short *RiverHandStrength(const Card *board, bool wins) {
     sorted_board[(num_board_cards - 1) - i] = vb[i];
   }
   int num_hole_card_pairs = Game::NumHoleCardPairs(max_street);
-  vector< pair<int, int> > v(num_hole_card_pairs);
+  vector<pair<int, int>> v(num_hole_card_pairs);
   int max_card = Game::MaxCard();
   int hole_cards[2];
   int hcp = 0;
@@ -53,7 +55,7 @@ static short *RiverHandStrength(const Card *board, bool wins) {
       ++hcp;
     }
   }
-  delete [] sorted_board;
+  delete[] sorted_board;
   sort(v.begin(), v.end(), g_pii_lower_compare);
 
   int num_enc = (max_card + 1) * (max_card + 1);
@@ -80,8 +82,8 @@ static short *RiverHandStrength(const Card *board, bool wins) {
       int hi = enc / (max_card + 1);
       int lo = enc % (max_card + 1);
       if (hv != last_hv) {
-	last_hv = hv;
-	if (j != 0) break;
+        last_hv = hv;
+        if (j != 0) break;
       }
       beats[j] = begin_range - seen[hi] - seen[lo];
       ++j;
@@ -96,35 +98,113 @@ static short *RiverHandStrength(const Card *board, bool wins) {
     }
     if (wins) {
       for (int k = begin_range; k < j; ++k) {
-	int enc = v[k].second;
-	values[enc] = (short)beats[k];
+        int enc = v[k].second;
+        values[enc] = (short)beats[k];
       }
     } else {
       short base_lose = num_hole_card_pairs - j;
       for (int k = begin_range; k < j; ++k) {
-	int enc = v[k].second;
-	int hi = enc / (max_card + 1);
-	int lo = enc % (max_card + 1);
-	// With five-card boards, there should be 46 hole card pairs containing,
-	// say, Kc.  52 cards - 5 on board - Kc
-	short lose = base_lose -
-	  ((num_buddies - seen[hi]) + (num_buddies - seen[lo]));
-	// beats[k] and lose are the two values we care about
-	// beats[k] - lose is the WML
-	short wml = ((short)beats[k]) - lose;
-	values[enc] = wml;
-	// OutputTwoCards(hi, lo);
-	// printf(" %i %i %i %u\n", (int)wml, beats[k], (int)lose, enc);
+        int enc = v[k].second;
+        int hi = enc / (max_card + 1);
+        int lo = enc % (max_card + 1);
+        // With five-card boards, there should be 46 hole card pairs containing,
+        // say, Kc.  52 cards - 5 on board - Kc
+        short lose =
+            base_lose - ((num_buddies - seen[hi]) + (num_buddies - seen[lo]));
+        // beats[k] and lose are the two values we care about
+        // beats[k] - lose is the WML
+        short wml = ((short)beats[k]) - lose;
+        values[enc] = wml;
+        // OutputTwoCards(hi, lo);
+        // printf(" %i %i %i %u\n", (int)wml, beats[k], (int)lose, enc);
       }
     }
   }
-  delete [] seen;
-  delete [] beats;
+  delete[] seen;
+  delete[] beats;
   return values;
 }
 
-static void GetPercentiles(vector<short> &wmls, double *percentiles, int num_percentiles,
-			   short *my_percentiles) {
+static float *OppoClusterRiverHandStrength(const Card *board, bool wins,
+                                           const Buckets *bucket) {
+  int max_street = Game::MaxStreet();
+  int num_board_cards = Game::NumBoardCards(max_street);
+
+  vector<int> vb(num_board_cards);
+  for (int i = 0; i < num_board_cards; ++i) vb[i] = board[i];
+  std::sort(vb.begin(), vb.end());
+  int *sorted_board = new int[num_board_cards];
+  for (int i = 0; i < num_board_cards; ++i) {
+    sorted_board[(num_board_cards - 1) - i] = vb[i];
+  }
+  int num_hole_card_pairs = Game::NumHoleCardPairs(max_street);
+  int max_card = Game::MaxCard();
+  int num_enc = (max_card + 1) * (max_card + 1);
+  vector<int> v(num_hole_card_pairs);
+  for (int i = 0; i < num_hole_card_pairs; ++i) v[i] = -1;
+  vector<vector<std::pair<int, int>>> ocv(bucket->NumBuckets(0));
+  int hole_cards[2];
+  int hcp = 0;
+  int h = 0;
+  for (int hi = 1; hi <= max_card; ++hi) {
+    hole_cards[0] = hi;
+    for (int lo = 0; lo < hi; ++lo) {
+      if (InCards(hi, board, num_board_cards) ||
+          InCards(lo, board, num_board_cards)) {
+        ++h;
+        continue;
+      }
+      hole_cards[1] = lo;
+      int hv = HandValueTree::Val(sorted_board, hole_cards);
+      int enc = hi * (max_card + 1) + lo;
+      v[hcp] = hv;
+      int b = bucket->Bucket(0, h);
+      if (b > ocv.size()) {
+        fprintf(stderr, "bucket index overflow.");
+      }
+      ocv[b].push_back({enc, hv});
+      ++hcp;
+      ++h;
+    }
+  }
+  delete[] sorted_board;
+  float *values = new float[num_hole_card_pairs * ocv.size()];
+  hcp = 0;
+  for (int hi = 1; hi <= max_card; ++hi) {
+    for (int lo = 0; lo < hi; ++lo) {
+      if (InCards(hi, board, num_board_cards) ||
+          InCards(lo, board, num_board_cards)) {
+        continue;
+      }
+      float *target_v = values + hcp * ocv.size();
+      int current_v = v[hcp];
+      for (int oci = 0; oci != ocv.size(); ++oci) {
+        target_v[oci] = 0;
+        int valid_opp = 0;
+        for (int ochi = 0; ochi != ocv[oci].size(); ++ochi) {
+          int opp_enc = ocv[oci][ochi].first;
+          int opp_v = ocv[oci][ochi].second;
+          int opp_hi = opp_enc / (max_card + 1);
+          int opp_lo = opp_enc % (max_card + 1);
+          if (hi == opp_hi || hi == opp_lo || lo == opp_hi || lo == opp_lo) {
+            continue;
+          }
+          target_v[oci] += current_v > opp_v;
+          if (!wins) {
+            target_v[oci] -= current_v < opp_v;
+          }
+          valid_opp += 1;
+        }
+        target_v[oci] /= valid_opp;
+      }
+      ++hcp;
+    }
+  }
+  return values;
+}
+
+static void GetPercentiles(vector<short> &wmls, double *percentiles,
+                           int num_percentiles, short *my_percentiles) {
   sort(wmls.begin(), wmls.end());
   int num = wmls.size();
   for (int i = 0; i < num_percentiles; ++i) {
@@ -141,15 +221,15 @@ static void GetPercentiles(vector<short> &wmls, double *percentiles, int num_per
 
 // We need to pool the WMLs for all the variants of each canonical hand.
 // What about for the flop/turn/river?
-static short *ComputePreflopPercentiles(double *percentiles, int num_percentiles,
-					bool wins) {
+static short *ComputePreflopPercentiles(double *percentiles,
+                                        int num_percentiles, bool wins) {
   BoardTree::BuildBoardCounts();
   int max_street = Game::MaxStreet();
   int num_ms_board_cards = Game::NumBoardCards(max_street);
   // Num cards left after board cards and hole cards for target player
   // removed from deck.
-  int num_remaining = Game::NumCardsInDeck() - num_ms_board_cards -
-    Game::NumCardsForStreet(0);
+  int num_remaining =
+      Game::NumCardsInDeck() - num_ms_board_cards - Game::NumCardsForStreet(0);
   // Assume two hole cards
   int max_wml = num_remaining * (num_remaining - 1) / 2;
   int num_wmls = 2 * max_wml + 1;
@@ -169,14 +249,14 @@ static short *ComputePreflopPercentiles(double *percentiles, int num_percentiles
     for (int enc = 0; enc < num_enc; ++enc) {
       short wml = river_wmls[enc];
       if (wml != 32000) {
-	// The raw WML values can be negative.  They range from -990 to 990,
-	// I think, for full-deck holdem.  We normalize them to the range
-	// 0 to 1980.
-	int norm_wml = wml + max_wml;
-	wml_counts[enc][norm_wml] += board_count;
+        // The raw WML values can be negative.  They range from -990 to 990,
+        // I think, for full-deck holdem.  We normalize them to the range
+        // 0 to 1980.
+        int norm_wml = wml + max_wml;
+        wml_counts[enc][norm_wml] += board_count;
       }
     }
-    delete [] river_wmls;
+    delete[] river_wmls;
   }
   CanonicalCards preflop_hands(2, NULL, 0, 0, false);
   int num_hole_card_pairs = Game::NumHoleCardPairs(0);
@@ -189,11 +269,11 @@ static short *ComputePreflopPercentiles(double *percentiles, int num_percentiles
     for (int lo = 0; lo < hi; ++lo) {
       int enc = hi * (max_card + 1) + lo;
       if (preflop_hands.NumVariants(hcp) == 0) {
-	int canon_enc = preflop_hands.Canon(hcp);
-	for (int w = 0; w < num_wmls; ++w) {
-	  wml_counts[canon_enc][w] += wml_counts[enc][w];
-	  wml_counts[enc][w] = 0;
-	}
+        int canon_enc = preflop_hands.Canon(hcp);
+        for (int w = 0; w < num_wmls; ++w) {
+          wml_counts[canon_enc][w] += wml_counts[enc][w];
+          wml_counts[enc][w] = 0;
+        }
       }
       ++hcp;
     }
@@ -204,40 +284,40 @@ static short *ComputePreflopPercentiles(double *percentiles, int num_percentiles
   for (int hi = 1; hi <= max_card; ++hi) {
     for (int lo = 0; lo < hi; ++lo) {
       if (preflop_hands.NumVariants(hcp) > 0) {
-	int enc = hi * (max_card + 1) + lo;
-	canon_enc_to_hcp[enc] = hcp;
-	int *counts = wml_counts[enc];
-	int sum_counts = 0;
-	for (int w = 0; w < num_wmls; ++w) sum_counts += counts[w];
-	int p = 0, cum = 0;
-	int w = 0;
-	while (p < num_percentiles && w < num_wmls) {
-	  double pct = percentiles[p];
-	  int threshold = pct * sum_counts;
-	  cum += counts[w];
-	  if (cum >= threshold) {
-	    // Undo the normalization
-	    pct_vals[hcp * num_percentiles + p] = (short)(w - max_wml);
-	    OutputTwoCards(hi, lo);
-	    printf(" %f %i\n", pct, w - max_wml);
-	    fflush(stdout);
-	    ++p;
-	  }
-	  ++w;
-	}
-	// Should get to the last percentile before the end of the WMLs
-	if (p < num_percentiles) {
-	  fprintf(stderr, "p %u expected %u\n", p, num_percentiles);
-	}
+        int enc = hi * (max_card + 1) + lo;
+        canon_enc_to_hcp[enc] = hcp;
+        int *counts = wml_counts[enc];
+        int sum_counts = 0;
+        for (int w = 0; w < num_wmls; ++w) sum_counts += counts[w];
+        int p = 0, cum = 0;
+        int w = 0;
+        while (p < num_percentiles && w < num_wmls) {
+          double pct = percentiles[p];
+          int threshold = pct * sum_counts;
+          cum += counts[w];
+          if (cum >= threshold) {
+            // Undo the normalization
+            pct_vals[hcp * num_percentiles + p] = (short)(w - max_wml);
+            OutputTwoCards(hi, lo);
+            printf(" %f %i\n", pct, w - max_wml);
+            fflush(stdout);
+            ++p;
+          }
+          ++w;
+        }
+        // Should get to the last percentile before the end of the WMLs
+        if (p < num_percentiles) {
+          fprintf(stderr, "p %u expected %u\n", p, num_percentiles);
+        }
       }
       ++hcp;
     }
   }
 
   for (int enc = 0; enc < num_enc; ++enc) {
-    delete [] wml_counts[enc];
+    delete[] wml_counts[enc];
   }
-  delete [] wml_counts;
+  delete[] wml_counts;
 
   // Copy the percentile values from the canonical hands to the
   // non-canonical ones.
@@ -245,17 +325,17 @@ static short *ComputePreflopPercentiles(double *percentiles, int num_percentiles
   for (int hi = 1; hi <= max_card; ++hi) {
     for (int lo = 0; lo < hi; ++lo) {
       if (preflop_hands.NumVariants(hcp) == 0) {
-	int canon_hcp = canon_enc_to_hcp[preflop_hands.Canon(hcp)];
-	for (int p = 0; p < num_percentiles; ++p) {
-	  pct_vals[hcp * num_percentiles + p] =
-	    pct_vals[canon_hcp * num_percentiles + p];
-	}
+        int canon_hcp = canon_enc_to_hcp[preflop_hands.Canon(hcp)];
+        for (int p = 0; p < num_percentiles; ++p) {
+          pct_vals[hcp * num_percentiles + p] =
+              pct_vals[canon_hcp * num_percentiles + p];
+        }
       }
       ++hcp;
     }
   }
 
-  delete [] canon_enc_to_hcp;
+  delete[] canon_enc_to_hcp;
 
   return pct_vals;
 }
@@ -271,63 +351,110 @@ static vector<short> *ComputeRollout(Card *board, bool wins, unsigned int st) {
     for (unsigned int i = 0; i < num_enc; ++i) {
       short wml = wmls1[i];
       if (wml != 32000) {
-	wmls[i].push_back(wml);
+        wmls[i].push_back(wml);
       }
     }
-    delete [] wmls1;
+    delete[] wmls1;
   } else {
     unsigned int num_board_cards = Game::NumBoardCards(st);
     unsigned int nst = st + 1;
     unsigned int num_new_board_cards = Game::NumCardsForStreet(nst);
     if (num_new_board_cards == 1) {
       for (unsigned int c = 0; c <= max_card; ++c) {
-	if (InCards(c, board, num_board_cards)) continue;
-	board[num_board_cards] = c;
-	vector<short> *next_wmls = ComputeRollout(board, wins, nst);
-	for (unsigned int i = 0; i < num_enc; ++i) {
-	  vector<short> &v = next_wmls[i];
-	  unsigned int num = v.size();
-	  for (unsigned int j = 0; j < num; ++j) {
-	    wmls[i].push_back(v[j]);
-	  }
-	}
-	delete [] next_wmls;
+        if (InCards(c, board, num_board_cards)) continue;
+        board[num_board_cards] = c;
+        vector<short> *next_wmls = ComputeRollout(board, wins, nst);
+        for (unsigned int i = 0; i < num_enc; ++i) {
+          vector<short> &v = next_wmls[i];
+          unsigned int num = v.size();
+          for (unsigned int j = 0; j < num; ++j) {
+            wmls[i].push_back(v[j]);
+          }
+        }
+        delete[] next_wmls;
       }
     } else if (num_new_board_cards == 3) {
       unsigned int hi, mid, lo;
       for (hi = 2; hi <= max_card; ++hi) {
-	fprintf(stderr, "hi %u/%u\n", hi, max_card + 1);
-	if (InCards(hi, board, num_board_cards)) continue;
-	board[num_board_cards] = hi;
-	for (mid = 1; mid < hi; ++mid) {
-	  if (InCards(mid, board, num_board_cards)) continue;
-	  board[num_board_cards + 1] = mid;
-	  for (lo = 0; lo < mid; ++lo) {
-	    board[num_board_cards + 2] = lo;
-	    vector<short> *next_wmls = ComputeRollout(board, wins, nst);
-	    for (unsigned int i = 0; i < num_enc; ++i) {
-	      vector<short> &v = next_wmls[i];
-	      unsigned int num = v.size();
-	      for (unsigned int j = 0; j < num; ++j) {
-		wmls[i].push_back(v[j]);
-	      }
-	    }
-	    delete [] next_wmls;
-	  }
-	}
+        fprintf(stderr, "hi %u/%u\n", hi, max_card + 1);
+        if (InCards(hi, board, num_board_cards)) continue;
+        board[num_board_cards] = hi;
+        for (mid = 1; mid < hi; ++mid) {
+          if (InCards(mid, board, num_board_cards)) continue;
+          board[num_board_cards + 1] = mid;
+          for (lo = 0; lo < mid; ++lo) {
+            board[num_board_cards + 2] = lo;
+            vector<short> *next_wmls = ComputeRollout(board, wins, nst);
+            for (unsigned int i = 0; i < num_enc; ++i) {
+              vector<short> &v = next_wmls[i];
+              unsigned int num = v.size();
+              for (unsigned int j = 0; j < num; ++j) {
+                wmls[i].push_back(v[j]);
+              }
+            }
+            delete[] next_wmls;
+          }
+        }
       }
     } else {
       fprintf(stderr, "Unhandled number of new board cards: %u\n",
-	      num_new_board_cards);
+              num_new_board_cards);
       exit(-1);
     }
   }
   return wmls;
 }
 
+// On river.  Compute WML for all hands.
+float *OppoClusterComputeRollout(unsigned int st, bool wins,
+                                 const Buckets *oppo_bucket, int nb_threads) {
+  if (st != Game::MaxStreet()) {
+    fprintf(stderr, "Oppo Cluster can only be used for last street.");
+    return nullptr;
+  }
+  size_t num_boards = BoardTree::NumBoards(st);
+  size_t num_board_cards = Game::NumBoardCards(st);
+  size_t num_hole_card_pairs = Game::NumHoleCardPairs(st);
+  size_t num_hands = num_boards * num_hole_card_pairs;
+  size_t num_features = oppo_bucket->NumBuckets(0);
+  size_t num_vals = num_hands * num_features;
+  float *pct_vals = new float[num_vals];
+  int per_block = num_boards / nb_threads;
+  std::vector<size_t> thread_block_size(nb_threads, per_block);
+  thread_block_size.back() += num_boards - nb_threads * per_block;
+  std::vector<std::thread> eval_threads(nb_threads);
+  size_t accumulator = 0;
+  for (int t = 0; t < nb_threads; ++t) {
+    accumulator += thread_block_size[t];
+    eval_threads[t] = std::thread([t, accumulator, &thread_block_size, st, wins,
+                                   oppo_bucket, num_boards, num_board_cards,
+                                   num_hole_card_pairs, num_hands, num_features,
+                                   num_vals, pct_vals] {
+      Card board[5];
+      for (unsigned int bd = (accumulator - thread_block_size[t]);
+           bd < accumulator; ++bd) {
+        fprintf(stderr, "bd %u/%u\n", bd, num_boards);
+        const Card *st_board = BoardTree::Board(st, bd);
+        for (unsigned int i = 0; i < num_board_cards; ++i) {
+          board[i] = st_board[i];
+        }
+        unsigned int h = bd * num_hole_card_pairs;
+        float *value = OppoClusterRiverHandStrength(board, wins, oppo_bucket);
+        for (int i = 0; i != num_hole_card_pairs * num_features; ++i) {
+          pct_vals[h * num_features + i] = value[i];
+        }
+        delete[] value;
+      }
+    });
+  }
+  for (int t = 0; t < nb_threads; ++t) eval_threads[t].join();
+  return pct_vals;
+}
+
 // On turn, deal out all river cards.  Compute WML for all hands.
-short *ComputeRollout(unsigned int st, double *percentiles, unsigned int num_percentiles,
-		      double squashing, bool wins) {
+short *ComputeRollout(unsigned int st, double *percentiles,
+                      unsigned int num_percentiles, double squashing,
+                      bool wins) {
   unsigned int num_boards = BoardTree::NumBoards(st);
   unsigned int num_board_cards = Game::NumBoardCards(st);
   unsigned int num_hole_card_pairs = Game::NumHoleCardPairs(st);
@@ -343,19 +470,20 @@ short *ComputeRollout(unsigned int st, double *percentiles, unsigned int num_per
       fprintf(stderr, "bd %u/%u\n", bd, num_boards);
       const Card *st_board = BoardTree::Board(st, bd);
       for (unsigned int i = 0; i < num_board_cards; ++i) {
-	board[i] = st_board[i];
+        board[i] = st_board[i];
       }
       unsigned int h = bd * num_hole_card_pairs;
       vector<short> *wmls = ComputeRollout(board, wins, st);
       unsigned int max_card = Game::MaxCard();
       unsigned int num_enc = (max_card + 1) * (max_card + 1);
       for (unsigned int i = 0; i < num_enc; ++i) {
-	vector<short> &v = wmls[i];
-	if (v.size() == 0) continue;
-	GetPercentiles(v, percentiles, num_percentiles, &pct_vals[h * num_percentiles]);
-	++h;
+        vector<short> &v = wmls[i];
+        if (v.size() == 0) continue;
+        GetPercentiles(v, percentiles, num_percentiles,
+                       &pct_vals[h * num_percentiles]);
+        ++h;
       }
-      delete [] wmls;
+      delete[] wmls;
     }
   }
   if (squashing == 1.0) {

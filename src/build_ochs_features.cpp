@@ -3,6 +3,7 @@
 
 #include "board_tree.h"
 #include "constants.h"
+#include "buckets.h"
 #include "files.h"
 #include "game.h"
 #include "game_params.h"
@@ -17,7 +18,7 @@ using namespace std;
 
 static void Usage(const char *prog_name) {
   fprintf(stderr, "USAGE: %s <game params> <card params> <street> <features name> "
-	  "<squashing> [wins|wmls] <pct 0> <pct 1>... <pct n>\n", prog_name);
+	  "<squashing> [wins|wmls] <num threads> \n", prog_name);
   fprintf(stderr, "\nSquashing of 1.0 means no squashing\n");
   exit(-1);
 }
@@ -42,17 +43,15 @@ int main(int argc, char *argv[]) {
   if (warg == "wins")      wins = true;
   else if (warg == "wmls") wins = false;
   else                     Usage(argv[0]);
+  int num_threads;
+  if (sscanf(argv[7], "%i", &num_threads) != 1) Usage(argv[0]);
   
-  int num_percentiles = argc - 7;
-  double *percentiles = new double[num_percentiles];
-  for (int i = 0; i < num_percentiles; ++i) {
-    if (sscanf(argv[6 + i], "%lf", &percentiles[i]) != 1) Usage(argv[0]);
-  }
-
   HandValueTree::Create();
   // Need this for ComputeRollout()
   BoardTree::Create();
-  short *pct_vals = ComputeRollout(street, percentiles, num_percentiles, squashing, wins);
+  Buckets buckets(*card_abstraction, false);
+  int num_features = buckets.NumBuckets(0);
+  float *pct_vals = OppoClusterComputeRollout(street, wins, &buckets, num_threads);
 
   unsigned int num_boards = BoardTree::NumBoards(street);
   unsigned int num_hole_card_pairs = Game::NumHoleCardPairs(street);
@@ -63,11 +62,11 @@ int main(int argc, char *argv[]) {
   sprintf(buf, "%s/features.%s.%u.%s.%u", Files::StaticBase(), Game::GameName().c_str(),
 	  Game::NumRanks(), features_name.c_str(), street);
   Writer writer(buf);
-  writer.WriteInt(num_percentiles);
+  writer.WriteInt(num_features);
 
   for (unsigned int h = 0; h < num_hands; ++h) {
-    for (int p = 0; p < num_percentiles; ++p) {
-      writer.WriteShort(pct_vals[h * num_percentiles + p]);
+    for (int p = 0; p < num_features; ++p) {
+      writer.WriteShort(pct_vals[h * num_features + p]);
     }
   }
 }

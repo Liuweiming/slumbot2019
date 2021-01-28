@@ -52,7 +52,7 @@ OBJS =	obj/fast_hash.o obj/rand.o obj/files.o obj/cards.o obj/io.o obj/split.o o
 	obj/server.o obj/match_state.o obj/acpc_protocol.o obj/bot.o obj/acpc_server.o
 
 all:	bin/show_num_boards bin/show_bucketing bin/show_boards bin/build_hand_value_tree bin/build_null_buckets \
-	bin/build_rollout_features bin/combine_features bin/build_unique_buckets \
+	bin/build_rollout_features bin/build_ochs_features bin/combine_features bin/build_unique_buckets \
 	bin/build_kmeans_buckets bin/build_kmcuda_buckets bin/crossproduct bin/prify bin/show_num_buckets \
 	bin/build_betting_tree bin/show_betting_tree bin/run_cfrp bin/run_tcfr bin/run_ecfr \
 	bin/run_rgbr bin/solve_all_subgames bin/solve_all_backup_subgames \
@@ -81,6 +81,10 @@ bin/build_null_buckets:	obj/build_null_buckets.o $(OBJS) $(HEADS)
 
 bin/build_rollout_features:	obj/build_rollout_features.o $(OBJS) $(HEADS)
 	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/build_rollout_features obj/build_rollout_features.o \
+	$(OBJS) $(LIBRARIES)
+
+bin/build_ochs_features:	obj/build_ochs_features.o $(OBJS) $(HEADS)
+	$(CXX) $(LDFLAGS) $(CFLAGS) -o bin/build_ochs_features obj/build_ochs_features.o \
 	$(OBJS) $(LIBRARIES)
 
 bin/combine_features:	obj/combine_features.o $(OBJS) $(HEADS)
