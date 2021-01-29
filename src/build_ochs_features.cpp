@@ -53,9 +53,9 @@ int main(int argc, char *argv[]) {
   int num_features = buckets.NumBuckets(0);
   float *pct_vals = OppoClusterComputeRollout(street, wins, &buckets, num_threads);
 
-  unsigned int num_boards = BoardTree::NumBoards(street);
-  unsigned int num_hole_card_pairs = Game::NumHoleCardPairs(street);
-  unsigned int num_hands = num_boards * num_hole_card_pairs;
+  size_t num_boards = BoardTree::NumBoards(street);
+  size_t num_hole_card_pairs = Game::NumHoleCardPairs(street);
+  size_t num_hands = num_boards * num_hole_card_pairs;
   fprintf(stderr, "%u hands\n", num_hands);
 
   char buf[500];
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
   Writer writer(buf);
   writer.WriteInt(num_features);
 
-  for (unsigned int h = 0; h < num_hands; ++h) {
+  for (size_t h = 0; h < num_hands; ++h) {
     for (int p = 0; p < num_features; ++p) {
       writer.WriteFloat(pct_vals[h * num_features + p]);
     }

@@ -28,10 +28,10 @@ static void Write(int st, const string &bucketing, uint32_t *assigments,
           Game::GameName().c_str(), Game::NumRanks(), Game::NumSuits(),
           max_street, bucketing.c_str(), st);
   Writer writer(buf);
-  unsigned int num_hole_card_pairs = Game::NumHoleCardPairs(st);
-  unsigned int num_hands =
-      ((unsigned int)BoardTree::NumBoards(st)) * num_hole_card_pairs;
-  for (unsigned int h = 0; h < num_hands; ++h) {
+  size_t num_hole_card_pairs = Game::NumHoleCardPairs(st);
+  size_t num_hands =
+      ((size_t)BoardTree::NumBoards(st)) * num_hole_card_pairs;
+  for (size_t h = 0; h < num_hands; ++h) {
     int index = indices[h];
     int b = assigments[index];
     if (short_buckets) {
@@ -84,9 +84,9 @@ int main(int argc, char *argv[]) {
 
   // Just need this to get number of hands
   BoardTree::Create();
-  unsigned int num_hole_card_pairs = Game::NumHoleCardPairs(st);
-  unsigned int num_hands =
-      ((unsigned int)BoardTree::NumBoards(st)) * num_hole_card_pairs;
+  size_t num_hole_card_pairs = Game::NumHoleCardPairs(st);
+  size_t num_hands =
+      ((size_t)BoardTree::NumBoards(st)) * num_hole_card_pairs;
   fprintf(stderr, "%u hands\n", num_hands);
   int *indices = new int[num_hands];
 
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
     SparseAndDenseLong *sad = new SparseAndDenseLong;
     uint64_t hash_seed = 0;
     vector<short *> *unique_objects = new vector<short *>;
-    for (unsigned int h = 0; h < num_hands; ++h) {
+    for (size_t h = 0; h < num_hands; ++h) {
       if (h % 10000000 == 0) {
         fprintf(stderr, "h %u\n", h);
       }
@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
     SparseAndDenseLong *sad = new SparseAndDenseLong;
     uint64_t hash_seed = 0;
     vector<float *> *unique_objects = new vector<float *>;
-    for (unsigned int h = 0; h < num_hands; ++h) {
+    for (size_t h = 0; h < num_hands; ++h) {
       if (h % 10000000 == 0) {
         fprintf(stderr, "h %u\n", h);
       }
@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
     // disable yinyang to save memory for stree 2 and stree 3.
     yinyang_t = 0.0;
   }
-  kmeans_cuda(kmcudaInitMethodPlusPlus, NULL, 0.000001, yinyang_t,
+  kmeans_cuda(kmcudaInitMethodPlusPlus, NULL, 0.0001, yinyang_t,
               kmcudaDistanceMetricL2, num_unique, num_features, num_clusters,
               2021127, 0, -1, 0, 1, objects, centroids, assignments,
               &average_distance);
