@@ -133,7 +133,7 @@ static float *OppoClusterRiverHandStrength(const Card *board, bool wins,
   vector<int> vb(num_board_cards);
   for (int i = 0; i < num_board_cards; ++i) vb[i] = board[i];
   std::sort(vb.begin(), vb.end());
-  int *sorted_board = new int[num_board_cards];
+  int *sorted_board = new int[num_board_cards]; 
   for (int i = 0; i < num_board_cards; ++i) {
     sorted_board[(num_board_cards - 1) - i] = vb[i];
   }
@@ -190,9 +190,7 @@ static float *OppoClusterRiverHandStrength(const Card *board, bool wins,
             continue;
           }
           target_v[oci] += current_v > opp_v;
-          if (!wins) {
-            target_v[oci] -= current_v < opp_v;
-          }
+          target_v[oci] += 0.5 * (current_v == opp_v);
           valid_opp += 1;
         }
         target_v[oci] /= valid_opp;
@@ -438,7 +436,7 @@ float *OppoClusterComputeRollout(unsigned int st, bool wins,
         for (unsigned int i = 0; i < num_board_cards; ++i) {
           board[i] = st_board[i];
         }
-        unsigned int h = bd * num_hole_card_pairs;
+        size_t h = bd * num_hole_card_pairs;
         float *value = OppoClusterRiverHandStrength(board, wins, oppo_bucket);
         for (int i = 0; i != num_hole_card_pairs * num_features; ++i) {
           pct_vals[h * num_features + i] = value[i];

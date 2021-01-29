@@ -29,8 +29,8 @@ LDFLAGS =
 # -ffast-math may need to be turned off for tests like std::isnan() to work
 # -ffast-math makes small changes to results of floating point calculations!
 # For profiling:
-CFLAGS = -std=c++17 -Wall -march=native -ffast-math -g -pg
-# CFLAGS = -std=c++17 -Wall -O3 -march=native -ffast-math -flto
+# CFLAGS = -std=c++17 -Wall -march=native -ffast-math -g -pg
+CFLAGS = -std=c++17 -Wall -O3 -march=native -ffast-math -flto
 CC = gcc-7
 CXX = g++-7
 

@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
 
   for (unsigned int h = 0; h < num_hands; ++h) {
     for (int p = 0; p < num_features; ++p) {
-      writer.WriteShort(pct_vals[h * num_features + p]);
+      writer.WriteFloat(pct_vals[h * num_features + p]);
     }
   }
 }

@@ -96,74 +96,135 @@ int main(int argc, char *argv[]) {
   Reader reader(buf);
   int num_features = reader.ReadIntOrDie();
   fprintf(stderr, "%u features\n", num_features);
-  short *feature_vals = new short[num_features];
-  SparseAndDenseLong *sad = new SparseAndDenseLong;
-  uint64_t hash_seed = 0;
-  vector<short *> *unique_objects = new vector<short *>;
-  for (unsigned int h = 0; h < num_hands; ++h) {
-    if (h % 10000000 == 0) {
-      fprintf(stderr, "h %u\n", h);
-    }
-    for (int f = 0; f < num_features; ++f) {
-      feature_vals[f] = reader.ReadShortOrDie();
-    }
-    unsigned long long int hash = fasthash64(
-        (void *)feature_vals, num_features * sizeof(short), hash_seed);
-    int old_num = sad->Num();
-    int index = sad->SparseToDense(hash);
-    indices[h] = index;
-    int new_num = sad->Num();
-    if (new_num > old_num && new_num % 1000000 == 0) {
-      fprintf(stderr, "%i unique feature combos so far\n", new_num);
-    }
-    if (new_num > old_num) {
-      // Previously unseen feature value vector
-      short *copy = new short[num_features];
-      for (int f = 0; f < num_features; ++f) {
-        copy[f] = feature_vals[f];
+  size_t num_unique;
+  float *objects;
+  if (st < 3) {
+    short *feature_vals = new short[num_features];
+    SparseAndDenseLong *sad = new SparseAndDenseLong;
+    uint64_t hash_seed = 0;
+    vector<short *> *unique_objects = new vector<short *>;
+    for (unsigned int h = 0; h < num_hands; ++h) {
+      if (h % 10000000 == 0) {
+        fprintf(stderr, "h %u\n", h);
       }
-      unique_objects->push_back(copy);
+      for (int f = 0; f < num_features; ++f) {
+        feature_vals[f] = reader.ReadShortOrDie();
+      }
+      unsigned long long int hash = fasthash64(
+          (void *)feature_vals, num_features * sizeof(short), hash_seed);
+      int old_num = sad->Num();
+      int index = sad->SparseToDense(hash);
+      indices[h] = index;
+      int new_num = sad->Num();
+      if (new_num > old_num && new_num % 1000000 == 0) {
+        fprintf(stderr, "%i unique feature combos so far\n", new_num);
+      }
+      if (new_num > old_num) {
+        // Previously unseen feature value vector
+        short *copy = new short[num_features];
+        for (int f = 0; f < num_features; ++f) {
+          copy[f] = feature_vals[f];
+        }
+        unique_objects->push_back(copy);
+      }
+      if (sad->Num() != (int)unique_objects->size()) {
+        fprintf(stderr, "Size mismatch: %i vs. %i\n", sad->Num(),
+                (int)unique_objects->size());
+        exit(-1);
+      }
     }
-    if (sad->Num() != (int)unique_objects->size()) {
-      fprintf(stderr, "Size mismatch: %i vs. %i\n", sad->Num(),
+    delete[] feature_vals;
+
+    num_unique = sad->Num();
+    if (num_unique != (int)unique_objects->size()) {
+      fprintf(stderr, "Final size mismatch: %i vs. %i\n", num_unique,
               (int)unique_objects->size());
       exit(-1);
     }
-  }
-  delete[] feature_vals;
+    fprintf(stderr, "%i unique objects\n", num_unique);
+    delete sad;
 
-  int num_unique = sad->Num();
-  if (num_unique != (int)unique_objects->size()) {
-    fprintf(stderr, "Final size mismatch: %i vs. %i\n", num_unique,
-            (int)unique_objects->size());
-    exit(-1);
-  }
-  fprintf(stderr, "%i unique objects\n", num_unique);
-  delete sad;
-
-  float *objects = new float[num_unique * num_features];
-  for (int i = 0; i < num_unique; ++i) {
-    for (int f = 0; f < num_features; ++f) {
-      objects[i * num_features + f] = (*unique_objects)[i][f];
-      if (i < 10) std::cout << objects[i * num_features + f] << " ";
+    objects = new float[num_unique * num_features];
+    for (int i = 0; i < num_unique; ++i) {
+      for (int f = 0; f < num_features; ++f) {
+        objects[i * num_features + f] = (*unique_objects)[i][f];
+        if (i < 10) std::cout << objects[i * num_features + f] << " ";
+      }
+      if (i < 10) std::cout << std::endl;
+      delete[](*unique_objects)[i];
     }
-    if (i < 10) std::cout << std::endl; 
-    delete[](*unique_objects)[i];
+    delete unique_objects;
+  } else {
+    float *feature_vals = new float[num_features];
+    SparseAndDenseLong *sad = new SparseAndDenseLong;
+    uint64_t hash_seed = 0;
+    vector<float *> *unique_objects = new vector<float *>;
+    for (unsigned int h = 0; h < num_hands; ++h) {
+      if (h % 10000000 == 0) {
+        fprintf(stderr, "h %u\n", h);
+      }
+      for (int f = 0; f < num_features; ++f) {
+        feature_vals[f] = reader.ReadFloatOrDie();
+      }
+      unsigned long long int hash = fasthash64(
+          (void *)feature_vals, num_features * sizeof(float), hash_seed);
+      int old_num = sad->Num();
+      int index = sad->SparseToDense(hash);
+      indices[h] = index;
+      int new_num = sad->Num();
+      if (new_num > old_num && new_num % 1000000 == 0) {
+        fprintf(stderr, "%i unique feature combos so far\n", new_num);
+      }
+      if (new_num > old_num) {
+        // Previously unseen feature value vector
+        float *copy = new float[num_features];
+        for (int f = 0; f < num_features; ++f) {
+          copy[f] = feature_vals[f];
+        }
+        unique_objects->push_back(copy);
+      }
+      if (sad->Num() != (int)unique_objects->size()) {
+        fprintf(stderr, "Size mismatch: %i vs. %i\n", sad->Num(),
+                (int)unique_objects->size());
+        exit(-1);
+      }
+    }
+    delete[] feature_vals;
+
+    num_unique = sad->Num();
+    if (num_unique != (int)unique_objects->size()) {
+      fprintf(stderr, "Final size mismatch: %i vs. %i\n", num_unique,
+              (int)unique_objects->size());
+      exit(-1);
+    }
+    fprintf(stderr, "%i unique objects\n", num_unique);
+    delete sad;
+
+    objects = new float[num_unique * num_features];
+    for (int i = 0; i < num_unique; ++i) {
+      for (int f = 0; f < num_features; ++f) {
+        objects[i * num_features + f] = (*unique_objects)[i][f];
+        if (i < 10) std::cout << objects[i * num_features + f] << " ";
+      }
+      if (i < 10) std::cout << std::endl;
+      delete[](*unique_objects)[i];
+    }
+    delete unique_objects;
   }
-  delete unique_objects;
 
   float *centroids = new float[num_clusters * num_features];
   uint32_t *assignments = new uint32_t[num_unique];
   float average_distance;
 
   float yinyang_t = 0.1;
-  if (st > 1){
+  if (st > 1) {
     // disable yinyang to save memory for stree 2 and stree 3.
     yinyang_t = 0.0;
   }
-  kmeans_cuda(kmcudaInitMethodPlusPlus, NULL, 0.0, yinyang_t, kmcudaDistanceMetricL2,
-              num_unique, num_features, num_clusters, 2021127, 0, -1, 0, 1,
-              objects, centroids, assignments, &average_distance);
+  kmeans_cuda(kmcudaInitMethodPlusPlus, NULL, 0.000001, yinyang_t,
+              kmcudaDistanceMetricL2, num_unique, num_features, num_clusters,
+              2021127, 0, -1, 0, 1, objects, centroids, assignments,
+              &average_distance);
   fprintf(stderr, "Average distance: %f\n", average_distance);
   fprintf(stderr, "Num actual buckets: %i\n", num_clusters);
 
