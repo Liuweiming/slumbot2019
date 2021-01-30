@@ -10,4 +10,8 @@ short *ComputeRollout(unsigned int st, double *percentiles,
 
 float *OppoClusterComputeRollout(unsigned int st, bool wins,
                                  const Buckets *oppo_bucket, int nb_threads);
+
+int *ComputePotentialRollout(unsigned int st, double *percentiles,
+                             unsigned int num_percentiles, Buckets *next_bucket);
+
 #endif
