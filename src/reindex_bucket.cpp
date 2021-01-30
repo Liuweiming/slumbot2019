@@ -53,6 +53,20 @@ std::string cards_to_string(Card *cards, int n) {
   return out;
 }
 
+static void WriteTo(Writer *writer, int st, const std::string &bucketing,
+                    unsigned int *assigments, int num_hands, int num_buckets) {
+  writer->WriteInt(st);
+  writer->WriteInt(num_buckets);
+  for (unsigned int h = 0; h < num_hands; ++h) {
+    int b = assigments[h];
+    if (b == -1) {
+      fprintf(stderr, "unassigned hand %u", h);
+      exit(-1);
+    }
+    writer->WriteUnsignedInt(b);
+  }
+}
+
 static void Write(int st, const std::string &bucketing,
                   unsigned int *assigments, int num_hands, int num_buckets) {
   int max_street = Game::MaxStreet();
@@ -61,16 +75,7 @@ static void Write(int st, const std::string &bucketing,
           Game::GameName().c_str(), Game::NumRanks(), Game::NumSuits(),
           max_street, bucketing.c_str(), st);
   Writer writer(buf);
-  writer.WriteInt(st);
-  writer.WriteInt(num_buckets);
-  for (unsigned int h = 0; h < num_hands; ++h) {
-    int b = assigments[h];
-    if (b == -1){
-      fprintf(stderr, "unassigned hand %u", h);
-      exit(-1);
-    }
-    writer.WriteUnsignedInt(b);
-  }
+  WriteTo(&writer, st, bucketing, assigments, num_hands, num_buckets);
 }
 
 int main(int argc, char *argv[]) {
@@ -96,6 +101,13 @@ int main(int argc, char *argv[]) {
   hand_indexer_init(2, num_cards3, &indexer[2]);
   uint8_t num_cards4[2] = {2, 5};
   hand_indexer_init(2, num_cards4, &indexer[3]);
+
+  // writer for all buckets.
+  char buf[500];
+  sprintf(buf, "%s/buckets.all.%s.%i.%i.%i.%s", Files::StaticBase(),
+          Game::GameName().c_str(), Game::NumRanks(), Game::NumSuits(),
+          max_street, bucketing.c_str());
+  Writer writer(buf);
 
   for (int st = 0; st <= max_street; ++st) {
     // Just need this to get number of hands
@@ -153,8 +165,24 @@ int main(int argc, char *argv[]) {
           // std::flush(std::cout);
           // exit(0);
           hand_index_t index = hand_index_last(&indexer[st], cards);
-          if (h % 100000 == 0) {
-            fprintf(stdout, "hand %u, index %lu, bucket %u\n", h, index, b);
+          if (index == 113248684) {
+            std::string cards_str = cards_to_string(hole_cards, 2);
+            cards_str += "/";
+            cards_str += cards_to_string(board, num_board_cards);
+            uint8_t indexed_cards[7];
+            Card indexed_cards_1[7];
+            hand_unindex(&indexer[st], st == 0 ? 0 : 1, index, indexed_cards);
+            for (int ci = 0; ci != 7; ++ci) {
+              indexed_cards_1[ci] = indexed_cards[ci];
+            }
+            std::string indexed_cards_string =
+                cards_to_string(indexed_cards_1, 2 + num_board_cards);
+            fprintf(stdout, "hand %u (%s), index %lu (%s), bucket %u\n", h,
+                    cards_str.c_str(), index, indexed_cards_string.c_str(), b);
+          }
+          if (st == 0) {
+            // preflop round should use null abstraction.
+            b = index;
           }
           if (index > round_size) {
             fprintf(stderr, "index overflow.\n");
@@ -164,9 +192,19 @@ int main(int argc, char *argv[]) {
             std::string cards_str = cards_to_string(hole_cards, 2);
             cards_str += "/";
             cards_str += cards_to_string(board, num_board_cards);
-            fprintf(stdout, "%s: hand %u, index %lu, bucket %u\n",
-                    cards_str.c_str(), h, index, b);
-            exit(1);
+            uint8_t indexed_cards[7];
+            Card indexed_cards_1[7];
+            hand_unindex(&indexer[st], st == 0 ? 0 : 1, index, indexed_cards);
+            for (int ci = 0; ci != 7; ++ci) {
+              indexed_cards_1[ci] = indexed_cards[ci];
+            }
+            std::string indexed_cards_string =
+                cards_to_string(indexed_cards_1, 2 + num_board_cards);
+            fprintf(stdout,
+                    "hand %u (%s), index %lu (%s), bucket %u, old_bucket %u\n",
+                    h, cards_str.c_str(), index, indexed_cards_string.c_str(),
+                    b, assigments[index]);
+            // exit(1);
           }
           assigments[index] = b;
           ++hcp;
@@ -174,6 +212,7 @@ int main(int argc, char *argv[]) {
       }
     }
     Write(st, bucketing, assigments, round_size, num_buckets);
+    WriteTo(&writer, st, bucketing, assigments, round_size, num_buckets);
     delete[] assigments;
   }
 }
